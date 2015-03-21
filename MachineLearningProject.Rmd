@@ -1,0 +1,57 @@
+---
+title: "Machine Learning Course Project"
+author: "Mary Ann Fanning"
+date: "Monday, March 16, 2015"
+output: html_document
+---
+In this project, we will develop an algorithm to predict types of exercises conducted with fitness wearables. 
+
+The first step is to import our files:
+```{r}
+training <- read.csv("training.csv", header=TRUE)
+test <- read.csv("test.csv", header=TRUE)
+```
+
+The next step is to do some basic data preparation on our training dataset. We start with 160 columns, and are able to reduce it to 53 by removing columns that include high numbers of NAs and blanks. This is crucial to reducing the amount of processing that our algorithm will need to do.
+```{r}
+ncol(training)
+training[training==""] <- NA
+    
+cleanData <- training[sapply(training, function(training) !any(is.na(training)))]
+
+cleanData <- cleanData[,-(1:7)]
+ncol(cleanData)
+```
+We are interested in using the data to predict the "classe" variables. Due to the length of the dataset we will subset the data and train using approx 40% of the data using the caret package.
+
+```{r warning=FALSE}
+library(caret)
+inTrain <- createDataPartition(y=cleanData$classe, p=0.5, list=FALSE)
+trainData <- cleanData[inTrain,]
+dim(trainData)
+```
+now we move onto training the machine using the Random Forest Technique:
+```{r}
+modFit <- train(classe ~., data=trainData, method="rf", prox=TRUE)
+modFit
+```
+Based on these numbers, we can see that the prediction is fairly accurate with close to 98.3% accuracy. 
+
+This means that the out of sample error is < 2%, which is a very high rate of accuracy. There are risks that we have overfitted to this dataset, and we do expect some outliers when we run our algorithm. We will run some cross validation using a dummy dataset generated from the training data. As we can see - the prediction and the reality are very close:
+
+```{r}
+testSubSample <- createDataPartition(y=cleanData$class, p=0.001, list=FALSE)
+testData <- cleanData[testSubSample,]
+predict(modFit, testData)
+testData$classe
+```
+
+We will wrap up this write up running the algorithm on the test dataset provided for this assignment.
+```{r}
+predict(modFit, test)
+```
+
+#Bibliography
+Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6.
+
+Read more: http://groupware.les.inf.puc-rio.br/har#ixzz3UykD5tT4
